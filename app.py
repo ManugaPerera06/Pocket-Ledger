@@ -33,6 +33,11 @@ def parse_transaction(data):
     if cents <= 0:
         return None, "amount must be greater than 0."
 
+    MAX_CENTS = 10**12  
+
+    if cents > MAX_CENTS:
+        return None, "amount is too large."
+
     category = str(data.get("category", "")).strip()
     if not category:
         return None, "category is required."
