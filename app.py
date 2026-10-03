@@ -4,7 +4,7 @@ from flask import Flask
 from db import get_connection, init_db
 
 app = Flask(__name__)
-init_db
+init_db()
 
 @app.route('/')
 def index():
