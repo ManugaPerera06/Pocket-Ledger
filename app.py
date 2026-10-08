@@ -98,6 +98,65 @@ def add_transaction():
         }
     ), 201
 
+@app.route("/transactions", methods=["GET"])
+def list_transactions():
+    tx_type = request.args.get("type")
+    if tx_type is not None:
+        tx_type = tx_type.strip().upper()
+        if tx_type not in ("INCOME", "EXPENSE"):
+            return jsonify({"error": "type must be 'income' or 'expense'."}), 400
 
+    category = request.args.get("category")
+    if category is not None:
+        category = category.strip()
+
+    date_from = request.args.get("from")
+    if date_from is not None:
+        try:
+            date_from = date.fromisoformat(date_from).isoformat()
+        except ValueError:
+            return jsonify({"error": "from must be in YYYY-MM-DD format."}), 400
+
+    date_to = request.args.get("to")
+    if date_to is not None:
+        try:
+            date_to = date.fromisoformat(date_to).isoformat()
+        except ValueError:
+            return jsonify({"error": "to must be in YYYY-MM-DD format."}), 400
+
+    query = "SELECT * FROM transactions WHERE 1=1"
+    params = []
+
+    if tx_type is not None:
+        query += " AND type = ?"
+        params.append(tx_type)
+    if category is not None:
+        query += " AND category = ?"
+        params.append(category)
+    if date_from is not None:
+        query += " AND transaction_date >= ?"
+        params.append(date_from)
+    if date_to is not None:
+        query += " AND transaction_date <= ?"
+        params.append(date_to)
+
+    query += " ORDER BY transaction_date DESC, id DESC"
+
+    with closing(get_connection()) as conn:
+        rows = conn.execute(query, params).fetchall()
+
+    transactions = [
+        {
+            "id": row["id"],
+            "type": row["type"],
+            "amount": row["amount_cents"] / 100,
+            "category": row["category"],
+            "note": row["note"],
+            "transaction_date": row["transaction_date"],
+        }
+        for row in rows
+    ]
+    return jsonify(transactions), 200
+    
 if __name__ == "__main__":
     app.run(debug=True)
