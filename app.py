@@ -1,7 +1,7 @@
 from contextlib import closing
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from db import get_connection, init_db
 
 app = Flask(__name__)
@@ -52,21 +52,6 @@ def parse_transaction(data):
         return None, "transaction_date must be in YYYY-MM-DD format."
 
     return (tx_type, cents, category, note, tx_date), None
-
-
-@app.route("/")
-def index():
-    with closing(get_connection()) as conn:
-        row = conn.execute(
-            """
-            SELECT COALESCE(
-                SUM(CASE WHEN type = 'INCOME' THEN amount_cents ELSE -amount_cents END),
-                0
-            ) AS balance
-            FROM transactions
-            """
-        ).fetchone()
-        return f"Current Balance : {row['balance'] / 100:.2f}"
 
 
 @app.route("/transactions", methods=["POST"])
@@ -157,6 +142,42 @@ def list_transactions():
         for row in rows
     ]
     return jsonify(transactions), 200
+
+@app.route("/")
+def index():
+    with closing(get_connection()) as conn:
+        balance_row = conn.execute(
+            """
+            SELECT COALESCE(
+                SUM(CASE WHEN type = 'INCOME' THEN amount_cents ELSE -amount_cents END),
+                0
+            ) AS balance
+            FROM transactions
+            """
+        ).fetchone()
+
+        recent_rows = conn.execute(
+            """
+            SELECT id, type, amount_cents, category, note, transaction_date
+            FROM transactions
+            ORDER BY transaction_date DESC, id DESC
+            LIMIT 10
+            """
+        ).fetchall()
+
+    balance = balance_row["balance"] / 100
+    recent = [
+        {
+            "id": row["id"],
+            "type": row["type"],
+            "amount": row["amount_cents"] / 100,
+            "category": row["category"],
+            "note": row["note"],
+            "transaction_date": row["transaction_date"],
+        }
+        for row in recent_rows
+    ]
+    return render_template("index.html", balance=balance, transactions=recent)
     
 if __name__ == "__main__":
     app.run(debug=True)
