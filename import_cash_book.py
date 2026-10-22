@@ -20,9 +20,9 @@ SHEET_CONFIG = {
     "2026": {"date": "A", "details": "B", "income": "C", "expense": "D", "min_row": 3},
 }
 
-# Rows that are weekly/monthly summaries, not real transactions, get skipped.
+# Only skip true summary rows (exact label matches), not anything containing "balance".
 SKIP_PATTERNS = re.compile(
-    r"balance|profit|loss|all income|all expenditure|year profit|^details$",
+    r"^\s*(all incomes?|all expenditures?|year profit|details)\s*$",
     re.IGNORECASE,
 )
 
@@ -61,7 +61,7 @@ def parse_date(raw) -> str:
     return datetime.strptime(str(raw).strip(), "%d.%m.%y").date().isoformat()
 
 
-def extract_rows(ws, config):
+def extract_rows(ws, config, sheet_year):
     rows = []
     last_date = None
 
@@ -86,8 +86,11 @@ def extract_rows(ws, config):
                 last_date = parse_date(date_val)
             except ValueError:
                 continue
-        if last_date is None:
-            continue  # stray row before any date has been seen
+            if not last_date.startswith(sheet_year):
+                raise ValueError(
+                    f"Sheet {sheet_year}, row {row[0].row}: date {last_date} "
+                    "is outside the sheet's year. Fix it in the Excel file."
+                )
 
         if "amount" in config:  # 2023 style: single signed column
             amt = val(row, "amount")
@@ -129,7 +132,7 @@ def main():
         if sheet_name not in wb.sheetnames:
             print(f"  (sheet '{sheet_name}' not found, skipping)")
             continue
-        sheet_rows = extract_rows(wb[sheet_name], config)
+        sheet_rows = extract_rows(wb[sheet_name], config, sheet_name)
         total = sum(r["amount_cents"] for r in sheet_rows) / 100
         print(f"{sheet_name}: {len(sheet_rows)} transactions parsed "
               f"({sum(1 for r in sheet_rows if r['type']=='INCOME')} income, "
