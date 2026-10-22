@@ -145,6 +145,7 @@ def list_transactions():
 
 @app.route("/")
 def index():
+    year = date.today().year
     with closing(get_connection()) as conn:
         balance_row = conn.execute(
             """
@@ -153,7 +154,9 @@ def index():
                 0
             ) AS balance
             FROM transactions
-            """
+            WHERE transaction_date >= ? AND transaction_date < ?
+            """,
+            (f"{year}-01-01", f"{year + 1}-01-01"),
         ).fetchone()
 
         recent_rows = conn.execute(
