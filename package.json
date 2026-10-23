@@ -1,0 +1,12 @@
+{
+  "name": "pocket-ledger",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:test": "python -m unittest discover -s backend/tests -v",
+    "dev": "python backend/app.py"
+  }
+}
