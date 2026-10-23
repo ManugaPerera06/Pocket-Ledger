@@ -270,6 +270,34 @@ def summary():
     })
 
 
+@app.get("/api/yearly-summary")
+def yearly_summary():
+    with closing(get_connection()) as conn:
+        rows = conn.execute(
+            """SELECT substr(transaction_date, 1, 4) AS year,
+                COALESCE(SUM(CASE WHEN type='INCOME' THEN amount_cents ELSE 0 END), 0) AS income,
+                COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount_cents ELSE 0 END), 0) AS expenses
+            FROM transactions
+            GROUP BY substr(transaction_date, 1, 4)
+            ORDER BY year DESC"""
+        ).fetchall()
+
+    results = []
+    for row in rows:
+        income = row["income"]
+        expenses = row["expenses"]
+        net = income - expenses
+        results.append({
+            "year": row["year"],
+            "income": round(income / 100, 2),
+            "expenses": round(expenses / 100, 2),
+            "profit": round(max(net, 0) / 100, 2),
+            "loss": round(max(-net, 0) / 100, 2),
+            "net": round(net / 100, 2),
+        })
+    return jsonify({"years": results})
+
+
 @app.get("/manus-routes.json")
 def route_manifest():
     return send_from_directory(ROOT, "manus-routes.json")
