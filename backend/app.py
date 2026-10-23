@@ -248,6 +248,10 @@ def summary():
             """SELECT category, COALESCE(SUM(amount_cents), 0) AS amount_cents
             FROM transactions WHERE type='EXPENSE' GROUP BY category ORDER BY amount_cents DESC LIMIT 8"""
         ).fetchall()
+        income_category_rows = conn.execute(
+            """SELECT category, COALESCE(SUM(amount_cents), 0) AS amount_cents
+            FROM transactions WHERE type='INCOME' GROUP BY category ORDER BY amount_cents DESC LIMIT 8"""
+        ).fetchall()
         recent_rows = conn.execute("SELECT * FROM transactions ORDER BY transaction_date DESC, id DESC LIMIT 6").fetchall()
         categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
 
@@ -265,6 +269,7 @@ def summary():
         "month": month_start[:7],
         "trend": [{"date": row["date"], "income": round(row["income"] / 100, 2), "expenses": round(row["expenses"] / 100, 2)} for row in trend_rows],
         "category_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in category_rows],
+        "income_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in income_category_rows],
         "recent_transactions": [row_to_transaction(row) for row in recent_rows],
         "categories": categories or CATEGORIES,
     })
