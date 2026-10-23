@@ -49,6 +49,7 @@ type Transaction = {
 
 type TrendPoint = { date: string; income: number; expenses: number }
 type CategoryPoint = { category: string; amount: number }
+type YearSummary = { year: string; income: number; expenses: number; profit: number; loss: number; net: number }
 type Summary = {
   total_balance: number
   total_income: number
@@ -59,6 +60,7 @@ type Summary = {
   month: string
   trend: TrendPoint[]
   category_breakdown: CategoryPoint[]
+  income_breakdown: CategoryPoint[]
   recent_transactions: Transaction[]
   categories: string[]
 }
@@ -78,6 +80,7 @@ const emptySummary: Summary = {
   month: '',
   trend: [],
   category_breakdown: [],
+  income_breakdown: [],
   recent_transactions: [],
   categories: [],
 }
@@ -107,6 +110,7 @@ function monthLabel(value: string) {
 
 function App() {
   const [summary, setSummary] = useState<Summary>(emptySummary)
+  const [yearlySummaries, setYearlySummaries] = useState<YearSummary[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [filters, setFilters] = useState<Filters>({ q: '', type: '', category: '', from: '', to: '' })
   const [loading, setLoading] = useState(true)
@@ -123,6 +127,11 @@ function App() {
     setSummary(result)
   }
 
+  const loadYearlySummaries = async () => {
+    const result = await api<{ years: YearSummary[] }>('/api/yearly-summary')
+    setYearlySummaries(result.years)
+  }
+
   const loadTransactions = async (nextFilters = filters) => {
     const params = new URLSearchParams()
     Object.entries(nextFilters).forEach(([key, value]) => { if (value) params.set(key, value) })
@@ -133,7 +142,7 @@ function App() {
   const refresh = async () => {
     setLoading(true)
     try {
-      await Promise.all([loadSummary(), loadTransactions()])
+      await Promise.all([loadSummary(), loadYearlySummaries(), loadTransactions()])
     } catch (error) {
       setToast({ kind: 'error', message: error instanceof Error ? error.message : 'Could not load your ledger.' })
     } finally {
@@ -168,7 +177,7 @@ function App() {
       await api<Transaction>(editing ? `/api/transactions/${editing.id}` : '/api/transactions', options)
       setModalOpen(false)
       setToast({ kind: 'success', message: editing ? 'Transaction updated.' : 'Transaction added to your ledger.' })
-      await Promise.all([loadSummary(), loadTransactions(filters)])
+      await Promise.all([loadSummary(), loadYearlySummaries(), loadTransactions(filters)])
     } catch (error) {
       setToast({ kind: 'error', message: error instanceof Error ? error.message : 'Could not save transaction.' })
     }
@@ -179,7 +188,7 @@ function App() {
     try {
       await api(`/api/transactions/${transaction.id}`, { method: 'DELETE' })
       setToast({ kind: 'success', message: 'Transaction deleted.' })
-      await Promise.all([loadSummary(), loadTransactions(filters)])
+      await Promise.all([loadSummary(), loadYearlySummaries(), loadTransactions(filters)])
     } catch (error) {
       setToast({ kind: 'error', message: error instanceof Error ? error.message : 'Could not delete transaction.' })
     }
@@ -192,7 +201,7 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500 shadow-lg shadow-indigo-950/30"><span className="text-sm font-black tracking-tight">PL</span></div>
-              <div><div className="font-semibold tracking-tight text-white">Pocket Ledger</div><div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Your cash, clearer</div></div>
+              <div><div className="font-semibold tracking-tight text-white">Pocket Ledger</div></div>
             </div>
             <button aria-label="Close navigation" onClick={() => setSidebarOpen(false)} className="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-white lg:hidden"><X size={18} /></button>
           </div>
@@ -201,6 +210,7 @@ function App() {
             <div className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">Workspace</div>
             <button className="flex w-full items-center gap-3 rounded-xl bg-indigo-500/10 px-3 py-3 text-left text-sm font-semibold text-indigo-300"><LayoutDashboard size={17} /> Overview</button>
             <button onClick={() => document.getElementById('transactions')?.scrollIntoView({ behavior: 'smooth' })} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-slate-100"><BookOpen size={17} /> Cash book</button>
+            <button onClick={() => document.getElementById('annual-review')?.scrollIntoView({ behavior: 'smooth' })} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-slate-100"><CircleDollarSign size={17} /> Annual review</button>
           </div>
 
           <div className="mt-auto rounded-2xl border border-indigo-400/15 bg-indigo-500/[0.07] p-4">
@@ -215,7 +225,7 @@ function App() {
 
         <main className="min-w-0 flex-1">
           <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-white/[0.06] bg-ink/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
-            <div className="flex items-center gap-3"><button aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 lg:hidden"><Menu size={18} /></button><div><div className="eyebrow">Friday, {new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric' }).format(new Date())}</div><h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">Your money at a glance</h1></div></div>
+            <div className="flex items-center gap-3"><button aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 lg:hidden"><Menu size={18} /></button><div><div className="eyebrow">Friday, {new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric' }).format(new Date())}</div><h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">My Money at a Glance</h1></div></div>
             <button onClick={openCreate} className="btn-primary"><Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Add transaction</span><span className="sm:hidden">Add</span></button>
           </header>
 
@@ -236,13 +246,20 @@ function App() {
                 <div className="mt-4 flex gap-5 text-xs text-slate-500"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-emerald-400" /> Income</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-rose-400" /> Expenses</span></div>
               </div>
 
-              <div className="panel min-h-[360px] p-5 sm:p-6"><div className="mb-4 flex items-start justify-between"><div><span className="eyebrow">Where it goes</span><h2 className="mt-2 text-lg font-semibold text-white">Expense mix</h2></div><div className="rounded-xl bg-white/[0.04] p-2 text-slate-500"><Tag size={17} /></div></div><div className="relative h-[205px]">{loading ? <ChartSkeleton /> : summary.category_breakdown.length === 0 ? <EmptyChart copy="Add an expense to see your mix." /> : <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={summary.category_breakdown} dataKey="amount" nameKey="category" innerRadius={58} outerRadius={82} paddingAngle={4} stroke="none">{summary.category_breakdown.map((entry, index) => <Cell key={entry.category} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer>} {summary.category_breakdown.length > 0 && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-2xl font-semibold text-white">{money(summary.total_expenses)}</span><span className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-500">all time</span></div>}</div><div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">{summary.category_breakdown.slice(0, 4).map((item, index) => <div key={item.category} className="flex min-w-0 items-center gap-2 text-xs text-slate-400"><i className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pieColors[index % pieColors.length] }} /><span className="truncate">{item.category}</span><span className="ml-auto text-slate-500">{money(item.amount)}</span></div>)}</div></div>
+              <div className="panel min-h-[360px] p-5 sm:p-6"><div className="mb-4 flex items-start justify-between"><div><span className="eyebrow">Where it goes</span><h2 className="mt-2 text-lg font-semibold text-white">Expense mix</h2></div><div className="rounded-xl bg-white/[0.04] p-2 text-slate-500"><Tag size={17} /></div></div><div className="relative h-[205px]">{loading ? <ChartSkeleton /> : summary.category_breakdown.length === 0 ? <EmptyChart copy="Add an expense to see your mix." /> : <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={summary.category_breakdown} dataKey="amount" nameKey="category" innerRadius={58} outerRadius={82} paddingAngle={4} stroke="none">{summary.category_breakdown.map((entry, index) => <Cell key={entry.category} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer>} {summary.category_breakdown.length > 0 && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-lg font-semibold text-white">{money(summary.total_expenses)}</span><span className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-500">all time</span></div>}</div><div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">{summary.category_breakdown.slice(0, 4).map((item, index) => <div key={item.category} className="flex min-w-0 items-center gap-2 text-xs text-slate-400"><i className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pieColors[index % pieColors.length] }} /><span className="truncate">{item.category}</span><span className="ml-auto text-slate-500">{money(item.amount)}</span></div>)}</div></div>
+            </section>
+
+            <section className="mb-8 grid gap-5 md:grid-cols-2">
+              <MixCard title="Income mix" eyebrow="Where it comes from" icon={<ArrowDownLeft size={17} />} data={summary.income_breakdown} total={summary.total_income} emptyCopy="Add income to see its mix." />
+              <div className="panel flex items-center gap-4 p-5 sm:p-6"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-300"><CircleDollarSign size={21} /></div><div><span className="eyebrow">Annual review</span><h2 className="mt-1 text-lg font-semibold text-white">Your year, in perspective</h2><p className="mt-1 text-xs leading-5 text-slate-500">See every year-end income, expense, profit, and loss calculation together.</p></div></div>
             </section>
 
             <section id="transactions" className="panel overflow-hidden">
               <div className="border-b border-white/[0.06] p-5 sm:p-6"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"><div><div className="flex items-center gap-2"><span className="eyebrow">All activity</span><span className="rounded-md bg-white/[0.05] px-2 py-1 text-[10px] font-semibold text-slate-500">{transactions.length} shown</span></div><h2 className="mt-2 text-lg font-semibold text-white">Cash book</h2></div><div className="flex flex-col gap-2 sm:flex-row"><div className="relative sm:w-60"><Search size={16} className="absolute left-3 top-3 text-slate-600" /><input value={filters.q} onChange={(event) => setFilters({ ...filters, q: event.target.value })} placeholder="Search transactions" className="field pl-9" /></div><button onClick={openCreate} className="btn-ghost"><Plus size={16} /> New entry</button></div></div><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto_1fr_auto_1fr_auto] sm:items-center lg:flex lg:flex-wrap"><FilterSelect value={filters.type} onChange={(value) => setFilters({ ...filters, type: value })} icon={<Filter size={14} />} options={[['', 'All types'], ['INCOME', 'Income'], ['EXPENSE', 'Expenses']]} /><FilterSelect value={filters.category} onChange={(value) => setFilters({ ...filters, category: value })} icon={<Tag size={14} />} options={[['', 'All categories'], ...categories.map((category) => [category, category])]} /><label className="relative"><CalendarDays size={14} className="absolute left-3 top-3 text-slate-600" /><input type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} className="field pl-9 text-xs text-slate-400" /></label><span className="hidden text-center text-xs font-medium text-slate-600 sm:block">to</span><label className="relative"><CalendarDays size={14} className="absolute left-3 top-3 text-slate-600" /><input type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} className="field pl-9 text-xs text-slate-400" /></label><button type="button" onClick={resetFilters} className="btn-ghost h-11 px-3 text-xs" title="Reset filters"><RotateCcw size={14} /> <span className="hidden lg:inline">Reset</span></button></div></div>
               <div className="relative overflow-x-auto">{tableLoading && <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-indigo-500/20"><div className="h-full w-1/3 animate-pulse bg-indigo-400" /></div>}<table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.16em] text-slate-600"><tr><th className="px-5 py-4 font-semibold sm:px-6">Date</th><th className="px-5 py-4 font-semibold">Description</th><th className="px-5 py-4 font-semibold">Category</th><th className="px-5 py-4 font-semibold">Type</th><th className="px-5 py-4 text-right font-semibold sm:px-6">Amount</th><th className="w-20 px-3 py-4" /></tr></thead><tbody className="divide-y divide-white/[0.045]">{transactions.map((transaction) => <tr key={transaction.id} className="group transition hover:bg-white/[0.025]"><td className="whitespace-nowrap px-5 py-4 text-slate-400 sm:px-6">{dateLabel(transaction.transaction_date)}</td><td className="max-w-[270px] truncate px-5 py-4 font-medium text-slate-200">{transaction.description}</td><td className="px-5 py-4"><span className="rounded-lg bg-white/[0.05] px-2.5 py-1 text-xs text-slate-400">{transaction.category}</span></td><td className="px-5 py-4"><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${transaction.type === 'INCOME' ? 'text-emerald-300' : 'text-rose-300'}`}><i className={`h-1.5 w-1.5 rounded-full ${transaction.type === 'INCOME' ? 'bg-emerald-400' : 'bg-rose-400'}`} />{transaction.type === 'INCOME' ? 'Income' : 'Expense'}</span></td><td className={`whitespace-nowrap px-5 py-4 text-right font-semibold tabular-nums sm:px-6 ${transaction.type === 'INCOME' ? 'text-emerald-300' : 'text-slate-200'}`}>{transaction.type === 'INCOME' ? '+' : '-'}{money(transaction.amount)}</td><td className="px-3 py-4"><div className="flex justify-end gap-1 opacity-0 transition group-hover:opacity-100"><button aria-label="Edit transaction" onClick={() => openEdit(transaction)} className="rounded-lg p-2 text-slate-500 hover:bg-white/10 hover:text-indigo-300"><Pencil size={14} /></button><button aria-label="Delete transaction" onClick={() => handleDelete(transaction)} className="rounded-lg p-2 text-slate-500 hover:bg-rose-500/10 hover:text-rose-300"><Trash2 size={14} /></button></div></td></tr>)}{!loading && transactions.length === 0 && <tr><td colSpan={6} className="px-6 py-16 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-slate-600"><ReceiptText size={20} /></div><div className="mt-4 text-sm font-medium text-slate-300">No transactions match those filters.</div><div className="mt-1 text-xs text-slate-600">Try a different search or add a fresh entry.</div></td></tr>}</tbody></table></div>
             </section>
+
+            <AnnualReview id="annual-review" years={yearlySummaries} loading={loading} />
           </div>
         </main>
       </div>
@@ -257,6 +274,14 @@ function MetricCard({ label, value, helper, icon, accent, loading, primary = fal
   const accents = { indigo: 'border-indigo-400/35 before:bg-indigo-400', mint: 'border-emerald-400/20 before:bg-emerald-400', rose: 'border-rose-400/20 before:bg-rose-400', amber: 'border-amber-400/20 before:bg-amber-400' }
   const iconColors = { indigo: 'bg-indigo-400/10 text-indigo-300', mint: 'bg-emerald-400/10 text-emerald-300', rose: 'bg-rose-400/10 text-rose-300', amber: 'bg-amber-400/10 text-amber-300' }
   return <div className={`panel relative overflow-hidden p-5 before:absolute before:inset-x-0 before:top-0 before:h-px ${accents[accent]} ${primary ? 'min-h-[150px]' : 'min-h-[150px]'}`}><div className="flex items-start justify-between"><span className="eyebrow">{label}</span><span className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconColors[accent]}`}>{icon}</span></div>{loading ? <div className="mt-5 h-8 w-28 animate-pulse rounded bg-white/10" /> : <div className="mt-5 text-[26px] font-semibold tracking-tight text-white sm:text-[28px]">{value}</div>}<div className="mt-2 text-xs text-slate-500">{helper}</div></div>
+}
+
+function MixCard({ title, eyebrow, icon, data, total, emptyCopy }: { title: string; eyebrow: string; icon: React.ReactNode; data: CategoryPoint[]; total: number; emptyCopy: string }) {
+  return <div className="panel min-h-[320px] p-5 sm:p-6"><div className="mb-4 flex items-start justify-between"><div><span className="eyebrow">{eyebrow}</span><h2 className="mt-2 text-lg font-semibold text-white">{title}</h2></div><div className="rounded-xl bg-white/[0.04] p-2 text-slate-500">{icon}</div></div><div className="relative h-[190px]">{data.length === 0 ? <EmptyChart copy={emptyCopy} /> : <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="amount" nameKey="category" innerRadius={56} outerRadius={78} paddingAngle={4} stroke="none">{data.map((entry, index) => <Cell key={entry.category} fill={pieColors[index % pieColors.length]} />)}</Pie><Tooltip content={<PieTooltip />} /></PieChart></ResponsiveContainer>}{data.length > 0 && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="text-lg font-semibold text-white">{money(total)}</span><span className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-500">all time</span></div>}</div><div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">{data.slice(0, 4).map((item, index) => <div key={item.category} className="flex min-w-0 items-center gap-2 text-xs text-slate-400"><i className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: pieColors[index % pieColors.length] }} /><span className="truncate">{item.category}</span><span className="ml-auto text-slate-500">{money(item.amount)}</span></div>)}</div></div>
+}
+
+function AnnualReview({ id, years, loading }: { id: string; years: YearSummary[]; loading: boolean }) {
+  return <section id={id} className="panel mb-8 overflow-hidden"><div className="border-b border-white/[0.06] p-5 sm:p-6"><div className="flex items-start justify-between"><div><span className="eyebrow">Year-end review</span><h2 className="mt-2 text-lg font-semibold text-white">Annual income & expenses</h2><p className="mt-1 text-xs text-slate-500">Profit is income minus expenses; loss shows years where expenses were higher.</p></div><div className="rounded-xl bg-emerald-400/10 p-2 text-emerald-300"><CircleDollarSign size={18} /></div></div></div><div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-white/[0.06] text-[10px] uppercase tracking-[0.16em] text-slate-600"><tr><th className="px-5 py-4 font-semibold sm:px-6">Year</th><th className="px-5 py-4 text-right font-semibold">Income</th><th className="px-5 py-4 text-right font-semibold">Expenses</th><th className="px-5 py-4 text-right font-semibold">Profit</th><th className="px-5 py-4 text-right font-semibold sm:px-6">Loss</th></tr></thead><tbody className="divide-y divide-white/[0.045]">{loading ? <tr><td colSpan={5} className="px-6 py-10 text-center text-xs text-slate-600">Calculating your yearly totals…</td></tr> : years.map((item) => <tr key={item.year} className="hover:bg-white/[0.025]"><td className="px-5 py-4 font-semibold text-white sm:px-6">{item.year}</td><td className="px-5 py-4 text-right font-medium text-emerald-300">{money(item.income)}</td><td className="px-5 py-4 text-right font-medium text-rose-300">{money(item.expenses)}</td><td className="px-5 py-4 text-right font-semibold text-indigo-300">{money(item.profit)}</td><td className="px-5 py-4 text-right font-semibold text-amber-300 sm:px-6">{money(item.loss)}</td></tr>)}{!loading && years.length === 0 && <tr><td colSpan={5} className="px-6 py-10 text-center text-xs text-slate-600">No dated transactions are available for a yearly review yet.</td></tr>}</tbody></table></div></section>
 }
 
 function FilterSelect({ value, onChange, icon, options }: { value: string; onChange: (value: string) => void; icon: React.ReactNode; options: string[][] }) {
