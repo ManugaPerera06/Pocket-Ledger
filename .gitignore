@@ -11,3 +11,4 @@ frontend/vite.config.d.ts
 *.log
 My Cash Book.xlsx
 data/My Cash Book.xlsx
+pocket.db
