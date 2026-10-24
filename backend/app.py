@@ -248,6 +248,10 @@ def summary():
             """SELECT category, COALESCE(SUM(amount_cents), 0) AS amount_cents
             FROM transactions WHERE type='EXPENSE' GROUP BY category ORDER BY amount_cents DESC LIMIT 8"""
         ).fetchall()
+        income_category_rows = conn.execute(
+            """SELECT category, COALESCE(SUM(amount_cents), 0) AS amount_cents
+            FROM transactions WHERE type='INCOME' GROUP BY category ORDER BY amount_cents DESC LIMIT 8"""
+        ).fetchall()
         recent_rows = conn.execute("SELECT * FROM transactions ORDER BY transaction_date DESC, id DESC LIMIT 6").fetchall()
         categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
 
@@ -265,9 +269,38 @@ def summary():
         "month": month_start[:7],
         "trend": [{"date": row["date"], "income": round(row["income"] / 100, 2), "expenses": round(row["expenses"] / 100, 2)} for row in trend_rows],
         "category_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in category_rows],
+        "income_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in income_category_rows],
         "recent_transactions": [row_to_transaction(row) for row in recent_rows],
         "categories": categories or CATEGORIES,
     })
+
+
+@app.get("/api/yearly-summary")
+def yearly_summary():
+    with closing(get_connection()) as conn:
+        rows = conn.execute(
+            """SELECT substr(transaction_date, 1, 4) AS year,
+                COALESCE(SUM(CASE WHEN type='INCOME' THEN amount_cents ELSE 0 END), 0) AS income,
+                COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount_cents ELSE 0 END), 0) AS expenses
+            FROM transactions
+            GROUP BY substr(transaction_date, 1, 4)
+            ORDER BY year DESC"""
+        ).fetchall()
+
+    results = []
+    for row in rows:
+        income = row["income"]
+        expenses = row["expenses"]
+        net = income - expenses
+        results.append({
+            "year": row["year"],
+            "income": round(income / 100, 2),
+            "expenses": round(expenses / 100, 2),
+            "profit": round(max(net, 0) / 100, 2),
+            "loss": round(max(-net, 0) / 100, 2),
+            "net": round(net / 100, 2),
+        })
+    return jsonify({"years": results})
 
 
 @app.get("/manus-routes.json")

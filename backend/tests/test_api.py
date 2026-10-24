@@ -78,6 +78,26 @@ class PocketLedgerApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("type", response.get_json()["error"])
 
+    def test_yearly_summary(self):
+        with get_connection() as conn:
+            conn.executemany(
+                "INSERT INTO transactions (transaction_date, description, category, type, amount_cents) VALUES (?, ?, ?, ?, ?)",
+                [
+                    ("2025-12-31", "Year-end allowance", "Family", "INCOME", 20000),
+                    ("2025-12-31", "Year-end gift", "Family", "EXPENSE", 5000),
+                ],
+            )
+            conn.commit()
+
+        response = self.client.get("/api/yearly-summary")
+        self.assertEqual(response.status_code, 200)
+        years = response.get_json()["years"]
+        self.assertEqual(years[0]["year"], "2026")
+        self.assertEqual(years[0]["profit"], 91.5)
+        self.assertEqual(years[0]["loss"], 0.0)
+        self.assertEqual(years[1]["year"], "2025")
+        self.assertEqual(years[1]["profit"], 150.0)
+
 
 if __name__ == "__main__":
     unittest.main()

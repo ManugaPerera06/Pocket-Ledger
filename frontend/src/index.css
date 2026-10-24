@@ -13,6 +13,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #0b1220; }
 button, input, select { font: inherit; }
+select option { color: #0f172a; background: #ffffff; }
 button { cursor: pointer; }
 
 @layer components {
