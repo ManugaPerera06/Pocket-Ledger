@@ -224,7 +224,7 @@ function App() {
 
         <main className="min-w-0 flex-1">
           <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-white/[0.06] bg-ink/90 px-5 backdrop-blur-xl sm:px-8 lg:px-10">
-            <div className="flex items-center gap-3"><button aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 lg:hidden"><Menu size={18} /></button><div><div className="eyebrow">Friday, {new Intl.DateTimeFormat('en', { month: 'long', day: 'numeric' }).format(new Date())}</div><h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">My Money at a Glance</h1></div></div>
+            <div className="flex items-center gap-3"><button aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-slate-300 lg:hidden"><Menu size={18} /></button><div><div className="eyebrow">{new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())}</div><h1 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">My Pocket Money at a Glance</h1></div></div>
             <button onClick={openCreate} className="btn-primary"><Plus size={17} strokeWidth={2.5} /><span className="hidden sm:inline">Add transaction</span><span className="sm:hidden">Add</span></button>
           </header>
 
