@@ -1,6 +1,6 @@
 # Pocket Ledger
 
-Pocket Ledger is a personal pocket-money and cash-book dashboard built from the supplied `My Cash Book.xlsx` history. It combines a React + Tailwind UI with a Flask + SQLite API and serves a seeded, traceable transaction history out of the box.
+Pocket Ledger is a personal pocket-money and cash-book application built from the `My Cash Book.xlsx` history. It combines a React + Tailwind UI with a Flask + SQLite API and serves a seeded, traceable transaction history out of the box.
 
 ## Stack
 
@@ -8,19 +8,6 @@ Pocket Ledger is a personal pocket-money and cash-book dashboard built from the 
 - Python 3.12, Flask, Gunicorn, SQLite
 - Integer cents for monetary storage; ISO 8601 dates for filtering and sorting
 
-## Local setup
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-npm --prefix frontend install
-npm --prefix frontend run build
-python backend/import_cash_book.py data/'My Cash Book.xlsx' --replace
-PORT=3000 python backend/app.py
-```
-
-Open `http://localhost:3000`. For frontend-only iteration, run Flask on port 5000 and `npm --prefix frontend run dev`; Vite proxies `/api` to Flask.
 
 ## Historical workbook mapping
 
@@ -43,12 +30,3 @@ The application includes Savings, Education & Classes, Food, Shopping, Health, O
 - `PUT /api/transactions/:id` with the same fields
 - `DELETE /api/transactions/:id`
 - `GET /api/summary` returns balance cards, trend points, category totals, and recent transactions
-
-## Verification
-
-```bash
-npm --prefix frontend run build
-python -m unittest discover -s backend/tests -v
-curl http://localhost:3000/api/health
-curl 'http://localhost:3000/api/summary'
-```
