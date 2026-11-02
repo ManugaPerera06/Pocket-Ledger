@@ -34,6 +34,7 @@ CATEGORIES = [
     "Loans",
     "Transport",
     "Bills",
+    "Work",
     "Uncategorized",
 ]
 
@@ -146,8 +147,9 @@ def list_transactions():
     where, params = transaction_query(filters)
     with closing(get_connection()) as conn:
         rows = conn.execute(f"SELECT * FROM transactions WHERE {where} ORDER BY transaction_date DESC, id DESC", params).fetchall()
-        categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
-    return jsonify({"transactions": [row_to_transaction(row) for row in rows], "total": len(rows), "categories": categories or CATEGORIES})
+        stored_categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
+    categories = sorted(set(CATEGORIES).union(stored_categories))
+    return jsonify({"transactions": [row_to_transaction(row) for row in rows], "total": len(rows), "categories": categories})
 
 
 @app.post("/api/transactions")
@@ -253,7 +255,7 @@ def summary():
             FROM transactions WHERE type='INCOME' GROUP BY category ORDER BY amount_cents DESC LIMIT 8"""
         ).fetchall()
         recent_rows = conn.execute("SELECT * FROM transactions ORDER BY transaction_date DESC, id DESC LIMIT 6").fetchall()
-        categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
+        stored_categories = [row[0] for row in conn.execute("SELECT DISTINCT category FROM transactions ORDER BY category").fetchall()]
 
     income = totals["income"]
     expenses = totals["expenses"]
@@ -271,7 +273,7 @@ def summary():
         "category_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in category_rows],
         "income_breakdown": [{"category": row["category"], "amount": round(row["amount_cents"] / 100, 2)} for row in income_category_rows],
         "recent_transactions": [row_to_transaction(row) for row in recent_rows],
-        "categories": categories or CATEGORIES,
+        "categories": sorted(set(CATEGORIES).union(stored_categories)),
     })
 
 

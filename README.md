@@ -33,7 +33,7 @@ The workbook has four year sheets:
 | 2025 | A/B | H: `Income`, J: `Expenditures` | Weekly profit labels are ignored as summary rows. |
 | 2026 | A/B | C: `Income`, D: `Expenditure` | Compact layout; dates are forward-filled. |
 
-The importer maps descriptions into Savings, Education & Classes, Food, Shopping, Health, Outings & Social, Family, Loans, Personal Care, or Uncategorized. Each imported row retains `source_file`, `source_sheet`, `source_row`, and `source_raw_date`.
+The application includes Savings, Education & Classes, Food, Shopping, Health, Outings & Social, Family, Loans, Personal Care, Transport, Bills, Work, and Uncategorized categories. The importer maps descriptions into the applicable historical categories, while Work is available for manually entered income or expense transactions. Each imported row retains `source_file`, `source_sheet`, `source_row`, and `source_raw_date`.
 
 ## API
 

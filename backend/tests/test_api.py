@@ -42,11 +42,13 @@ class PocketLedgerApiTests(unittest.TestCase):
         self.assertEqual(payload["current_month_expenses"], 8.5)
         self.assertEqual(payload["net_savings"], 91.5)
         self.assertEqual(payload["category_breakdown"][0]["category"], "Food")
+        self.assertIn("Work", payload["categories"])
 
     def test_filter_and_crud(self):
         response = self.client.get("/api/transactions?type=expense&category=Food")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["total"], 1)
+        self.assertIn("Work", response.get_json()["categories"])
 
         created = self.client.post("/api/transactions", json={
             "transaction_date": "2026-10-03",
