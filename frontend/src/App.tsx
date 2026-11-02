@@ -68,7 +68,7 @@ type Summary = {
 type Filters = { q: string; type: string; category: string; from: string; to: string }
 type FormState = { transaction_date: string; description: string; category: string; type: TransactionType; amount: string }
 
-const defaultCategories = ['Food', 'Education & Classes', 'Shopping', 'Outings & Social', 'Family', 'Health', 'Personal Care', 'Savings', 'Loans', 'Transport', 'Bills', 'Uncategorized']
+const defaultCategories = ['Food', 'Education & Classes', 'Shopping', 'Outings & Social', 'Family', 'Health', 'Personal Care', 'Savings', 'Loans', 'Transport', 'Bills', 'Work', 'Uncategorized']
 const pieColors = ['#818cf8', '#34d399', '#fb7185', '#fbbf24', '#38bdf8', '#c084fc', '#f97316', '#94a3b8']
 const emptySummary: Summary = {
   total_balance: 0,
